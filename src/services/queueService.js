@@ -1,15 +1,62 @@
 const { client } = require('../config/elasticsearch');
+const fs = require('fs');
+const path = require('path');
 
 class QueueService {
     constructor() {
         this.indexName = process.env.ELASTICSEARCH_INDEX || 'logs';
         this.queue = [];
-        this.batchSize = 1000; // Configurable batch size
-        this.flushInterval = 5000; // Flush every 5 seconds
+        this.batchSize = 1000;
+        this.flushInterval = 5000;
+        this.persistPath = path.join(__dirname, '../data/queue-backup.json');
         this.isProcessing = false;
 
-        // Auto-flush timer
+        // Load persisted queue on startup
+        this.loadPersistedQueue();
+
+        // Persist queue periodically
+        setInterval(() => this.persistQueue(), 10000);
+
         this.startAutoFlush();
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => this.gracefulShutdown());
+        process.on('SIGINT', () => this.gracefulShutdown());
+    }
+
+    async loadPersistedQueue() {
+        try {
+            if (fs.existsSync(this.persistPath)) {
+                const data = fs.readFileSync(this.persistPath, 'utf8');
+                this.queue = JSON.parse(data);
+                console.log(`📦 Loaded ${this.queue.length} persisted logs`);
+            }
+        } catch (error) {
+            console.error('Failed to load persisted queue:', error);
+        }
+    }
+
+    persistQueue() {
+        try {
+            if (this.queue.length > 0) {
+                fs.writeFileSync(this.persistPath, JSON.stringify(this.queue));
+            }
+        } catch (error) {
+            console.error('Failed to persist queue:', error);
+        }
+    }
+
+    async gracefulShutdown() {
+        console.log('🛑 Gracefully shutting down...');
+
+        // Flush remaining logs
+        await this.flush();
+
+        // Persist any remaining
+        this.persistQueue();
+
+        console.log('✅ Shutdown complete');
+        process.exit(0);
     }
 
     // Add log to queue
