@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Query Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>🔐 Login Required</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required>
+                    <small>Use: admin or viewer</small>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                    <small>admin123 or viewer123</small>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>📋 Log Query Interface</h1>
+                    <p>Search and filter logs in real-time</p>
+                </div>
+                <div class="user-info">
+                    <span id="userDisplay"></span>
+                    <button onclick="logout()" class="btn-logout">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Performance Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Total Logs</span>
+                <span class="stat-value" id="totalLogs">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Query Time</span>
+                <span class="stat-value" id="queryTime">0ms</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Cache Status</span>
+                <span class="stat-value" id="cacheStatus">-</span>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button onclick="quickFilter('error')" class="quick-btn error">🔴 Errors Only</button>
+                <button onclick="quickFilter('warn')" class="quick-btn warn">🟡 Warnings</button>
+                <button onclick="quickFilter('today')" class="quick-btn">📅 Today</button>
+                <button onclick="clearFilters()" class="quick-btn">🗑️ Clear All</button>
+            </div>
+
+            <!-- Full-text search -->
+            <div class="search-bar">
+                <input type="text" id="fullTextSearch" placeholder="Search across all logs..." 
+                       onkeypress="handleSearchKeypress(event)">
+                <button onclick="performFullTextSearch()">🔍 Search</button>
+            </div>
+
+            <!-- Advanced Filters (Collapsible) -->
+            <div class="filters">
+                <div class="filters-header" onclick="toggleFilters()">
+                    <h3>Advanced Filters</h3>
+                    <span id="filterToggle">▼</span>
+                </div>
+                <div class="filter-grid" id="filterGrid">
+                    <div class="filter-item">
+                        <label>Level</label>
+                        <select id="filterLevel">
+                            <option value="">All</option>
+                            <option value="error">Error</option>
+                            <option value="warn">Warn</option>
+                            <option value="info">Info</option>
+                            <option value="debug">Debug</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Resource ID</label>
+                        <input type="text" id="filterResourceId" placeholder="e.g., server-1234">
+                    </div>
+                    <div class="filter-item">
+                        <label>Trace ID</label>
+                        <input type="text" id="filterTraceId" placeholder="e.g., abc-xyz-123">
+                    </div>
+                    <div class="filter-item">
+                        <label>Message Contains</label>
+                        <input type="text" id="filterMessage" placeholder="e.g., Failed to connect">
+                    </div>
+                    <div class="filter-item">
+                        <label>Start Time</label>
+                        <input type="datetime-local" id="filterStartTime">
+                    </div>
+                    <div class="filter-item">
+                        <label>End Time</label>
+                        <input type="datetime-local" id="filterEndTime">
+                    </div>
+                    <div class="filter-item">
+                        <label>Span ID</label>
+                        <input type="text" id="filterSpanId" placeholder="e.g., span-456">
+                    </div>
+                    <div class="filter-item">
+                        <label>Commit</label>
+                        <input type="text" id="filterCommit" placeholder="e.g., 5e5342f">
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button onclick="applyFilters()" class="btn-primary">Apply Filters</button>
+                    <button onclick="exportResults()" class="btn-secondary">📥 Export CSV</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-section">
+            <div class="results-header">
+                <h3>Results <span id="resultCount">0 logs</span></h3>
+                <div class="results-actions">
+                    <button onclick="toggleRealtime()" id="realtimeBtn" class="btn-realtime">
+                        ▶️ Start Real-Time
+                    </button>
+                    <div class="pagination">
+                        <button onclick="previousPage()" id="prevBtn">← Previous</button>
+                        <span id="pageInfo">Page 1</span>
+                        <button onclick="nextPage()" id="nextBtn">Next →</button>
+                    </div>
+                </div>
+            </div>
+            <div id="resultsContainer" class="results-container">
+                <p class="no-results">No logs found. Try adjusting your filters.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
