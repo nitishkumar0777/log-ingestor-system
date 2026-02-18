@@ -5,7 +5,6 @@ class SearchService {
         this.indexName = process.env.ELASTICSEARCH_INDEX || 'logs';
     }
 
-    // OPTIMIZED: Build query with performance hints
     buildQuery(filters) {
         const must = [];
         const filter = []; // Use filter context for non-scoring queries
@@ -58,7 +57,6 @@ class SearchService {
         };
     }
 
-    // OPTIMIZED: Search with performance enhancements
     async searchLogs(filters, options = {}) {
         try {
             const { page = 1, size = 100, sortBy = 'timestamp', sortOrder = 'desc' } = options;
@@ -98,7 +96,6 @@ class SearchService {
         }
     }
 
-    // OPTIMIZED: Full-text search with all fields
     async fullTextSearch(searchText, options = {}) {
         try {
             const { page = 1, size = 100 } = options;
@@ -158,7 +155,7 @@ class SearchService {
         }
     }
 
-    // Regex search (existing method - already included)
+
     async regexSearch(field, pattern, options = {}) {
         try {
             const { page = 1, size = 100 } = options;
@@ -206,51 +203,6 @@ class SearchService {
         }
     }
 
-    // Wildcard search
-    async wildcardSearch(field, pattern, options = {}) {
-        try {
-            const { page = 1, size = 100 } = options;
-            const safeSize = Math.min(size, 1000);
-
-            const allowedFields = ['message', 'resourceId', 'traceId', 'spanId', 'commit'];
-            if (!allowedFields.includes(field)) {
-                throw new Error(`Field '${field}' does not support wildcard search`);
-            }
-
-            const response = await client.search({
-                index: this.indexName,
-                body: {
-                    query: {
-                        wildcard: {
-                            [field]: {
-                                value: pattern,
-                                case_insensitive: true
-                            }
-                        }
-                    },
-                    sort: [{ timestamp: { order: 'desc' } }],
-                    from: (page - 1) * safeSize,
-                    size: safeSize,
-                    track_total_hits: 10000,
-                    timeout: '10s'
-                }
-            });
-
-            return {
-                total: typeof response.hits.total === 'object'
-                    ? response.hits.total.value
-                    : response.hits.total,
-                logs: response.hits.hits.map(hit => ({
-                    id: hit._id,
-                    ...hit._source
-                })),
-                page,
-                size: safeSize
-            };
-        } catch (error) {
-            throw new Error(`Wildcard search failed: ${error.message}`);
-        }
-    }
 }
 
 module.exports = new SearchService();

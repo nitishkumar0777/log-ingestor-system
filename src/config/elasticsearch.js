@@ -61,9 +61,9 @@ const indexMapping = {
     },
     settings: {
         // PERFORMANCE OPTIMIZATIONS
-        number_of_shards: 5,           // Increase for parallel writes
-        number_of_replicas: 1,         // Balance between safety and speed
-        refresh_interval: '30s',       // Reduce refresh frequency (was 1s)
+        number_of_shards: 3,           // Reduced for single-node setup (was 5)
+        number_of_replicas: 0,         // 0 for single node (was 1)
+        refresh_interval: '30s',       // Reduce refresh frequency
 
         // Indexing optimizations
         'index.translog.durability': 'async',
@@ -71,9 +71,6 @@ const indexMapping = {
 
         // Merge policy for better write performance
         'index.merge.scheduler.max_thread_count': 1,
-
-        // Buffering
-        'index.buffer.size': '512mb',
 
         // Query cache
         'index.queries.cache.enabled': true,

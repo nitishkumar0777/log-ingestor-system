@@ -46,7 +46,6 @@ A high-performance, scalable log ingestion and querying system built with Node.j
 - 📊 **Web-based query interface** - Intuitive UI with live updates
 - 🔄 **Real-time log streaming** - WebSocket support for live log monitoring
 - 🔍 **Regular expression search** - Advanced pattern matching
-- 🌟 **Wildcard search** - Simple pattern-based queries
 - 📈 **Performance metrics** - Monitor system performance in real-time
 - 💾 **Query result caching** - Faster repeat queries with intelligent caching
 - 📤 **CSV export** - Export query results for analysis
@@ -57,8 +56,8 @@ A high-performance, scalable log ingestion and querying system built with Node.j
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐      HTTP POST (Port 3000)      ┌──────────────────────┐
-│   Log Sources   │ ──────────────────────────────> │   Node.js Server     │
+┌─────────────────┐      HTTP POST (Port 3000)       ┌──────────────────────┐
+│   Log Sources   │ ──────────────────────────────>  │   Node.js Server     │
 │   (Clients)     │                                  │   (Express.js)       │
 └─────────────────┘                                  └──────────┬───────────┘
                                                                 │
@@ -124,7 +123,7 @@ Before you begin, ensure you have the following installed:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/log-ingestor-system.git
+git clone https://github.com/nitishkumar0777/log-ingestor-system.git
 cd log-ingestor-system
 ```
 
@@ -152,7 +151,7 @@ This will install all required packages:
 
 ```bash
 # Start Elasticsearch container
-docker-compose up -d
+docker compose up --build -d
 
 # Verify Elasticsearch is running
 curl http://localhost:9200
@@ -162,12 +161,19 @@ Expected output:
 
 ```json
 {
-  "name": "log-elasticsearch",
-  "cluster_name": "docker-cluster",
-  "cluster_uuid": "abc123...",
+  "name": "elasticsearch",
+  "cluster_name": "log-cluster",
+  "cluster_uuid": "NavWwctNQBuEB1rvW53-nQ",
   "version": {
     "number": "8.11.0",
-    "build_flavor": "default"
+    "build_flavor": "default",
+    "build_type": "docker",
+    "build_hash": "d9ec3fa628c7b0ba3d25692e277ba26814820b20",
+    "build_date": "2023-11-04T10:04:57.184859352Z",
+    "build_snapshot": false,
+    "lucene_version": "9.8.0",
+    "minimum_wire_compatibility_version": "7.17.0",
+    "minimum_index_compatibility_version": "7.0.0"
   },
   "tagline": "You Know, for Search"
 }
@@ -210,12 +216,12 @@ You should see:
 ✅ Index 'logs' created successfully
 
 ╔═══════════════════════════════════════════════════╗
-║   🚀 Log Ingestor System Started                  ║
+║  🚀 Log Ingestor System Started                   ║
 ╠═══════════════════════════════════════════════════╣
-║   📥 Ingest Endpoint: http://localhost:3000/ingest  ║
-║   🔍 Query Endpoint:  http://localhost:3000/query   ║
-║   🌐 Web UI:          http://localhost:3000         ║
-║   ❤️  Health Check:    http://localhost:3000/health ║
+║  📥 Ingest Endpoint: http://localhost:3000/ingest ║
+║  🔍 Query Endpoint:  http://localhost:3000/query  ║
+║  🌐 Web UI:          http://localhost:3000        ║
+║  ❤️  Health Check:   http://localhost:3000/health ║
 ╚═══════════════════════════════════════════════════╝
 ```
 
@@ -339,8 +345,8 @@ The system automatically creates an optimized index with the following structure
   },
   "settings": {
     "number_of_shards": 3,              // Parallel processing
-    "number_of_replicas": 1,            // Data redundancy
-    "refresh_interval": "1s"            // Near real-time search
+    "number_of_replicas": 0,            // Data redundancy
+    "refresh_interval": "30s"           // Reduce refresh frequency
   }
 }
 ```
@@ -626,20 +632,28 @@ curl -X POST http://localhost:3000/ingest/bulk \
 
 ```json
 {
-  "success": false,
-  "message": "Some logs failed to ingest",
-  "errors": [
-    {
-      "status": 400,
-      "error": {
-        "type": "mapper_parsing_exception",
-        "reason": "failed to parse field [timestamp]"
-      },
-      "document": {
-        /* failed log */
-      }
-    }
-  ]
+    "success": false,
+    "error": "1 invalid log(s) found",
+    "invalidLogs": [
+        {
+            "index": 0,
+            "log": {
+                "message": "Database connection timeout",
+                "resourceId": "server-1234",
+                "timestamp": "2023-09-15T08:00:00Z",
+                "traceId": "trace-1",
+                "spanId": "span-1",
+                "commit": "abc123",
+                "metadata": {
+                    "parentResourceId": "server-0"
+                }
+            },
+            "errors": [
+                "Missing required field: level"
+            ]
+        }
+    ],
+    "totalInvalid": 1
 }
 ```
 
@@ -872,71 +886,6 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
   "error": "Field 'invalidField' does not support regex search. Allowed: message, resourceId, traceId, spanId, commit, metadata.parentResourceId"
 }
 ```
-
----
-
-#### GET `/query/wildcard`
-
-Search using wildcard patterns (simpler than regex).
-
-**Authentication:** Required (Admin or Viewer)
-
-**Query Parameters:**
-
-| Parameter | Type   | Description      | Required |
-| --------- | ------ | ---------------- | -------- |
-| `field`   | string | Field to search  | Yes      |
-| `pattern` | string | Wildcard pattern | Yes      |
-| `page`    | number | Page number      | No       |
-| `size`    | number | Results per page | No       |
-
-**Wildcard Syntax:**
-
-- `*` = Zero or more characters
-- `?` = Single character
-
-**Examples:**
-
-```bash
-# 1. Find messages containing "connection"
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:3000/query/wildcard?field=message&pattern=*connection*"
-
-# 2. Find resource IDs starting with "server-12"
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:3000/query/wildcard?field=resourceId&pattern=server-12*"
-
-# 3. Find commits with specific pattern
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:3000/query/wildcard?field=commit&pattern=5?5*"
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "total": 15,
-    "logs": [
-      {
-        "id": "stu678vwx",
-        "level": "warn",
-        "message": "Lost connection to cache server",
-        "resourceId": "server-9012",
-        "timestamp": "2023-09-15T11:00:00Z",
-        "traceId": "mno-pqr-456",
-        "spanId": "span-678",
-        "commit": "9d0e1f2"
-      }
-    ],
-    "page": 1,
-    "size": 100
-  }
-}
-```
-
----
 
 ### 4. System Endpoints
 
@@ -1289,7 +1238,7 @@ DELETE /logs-2023-08
 Deploy multiple application instances with load balancing:
 
 ```yaml
-# docker-compose.production.yml
+# docker-compose.yml
 version: "3.8"
 
 services:
@@ -1310,13 +1259,14 @@ services:
       - ELASTICSEARCH_NODE=http://elasticsearch:9200
     depends_on:
       - elasticsearch
-
+          condition: service_healthy
   app2:
     build: .
     environment:
       - ELASTICSEARCH_NODE=http://elasticsearch:9200
     depends_on:
       - elasticsearch
+          condition: service_healthy
 
   app3:
     build: .
@@ -1324,6 +1274,7 @@ services:
       - ELASTICSEARCH_NODE=http://elasticsearch:9200
     depends_on:
       - elasticsearch
+          condition: service_healthy
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -1336,7 +1287,7 @@ services:
 Start the cluster:
 
 ```bash
-docker-compose -f docker-compose.production.yml up -d
+docker compose docker-compose.yml up --build -d
 ```
 
 ---
@@ -1556,7 +1507,7 @@ curl http://localhost:9200
 **Option A:** Start Elasticsearch
 
 ```bash
-docker-compose up -d
+docker compose up --build -d
 ```
 
 **Option B:** Check Docker status
@@ -2125,7 +2076,7 @@ We welcome contributions! Here's how you can help:
 
 ```bash
    # Click "Fork" on GitHub
-   git clone https://github.com/your-username/log-ingestor-system.git
+   git clone https://github.com/nitishkumar0777/log-ingestor-system.git
    cd log-ingestor-system
 ```
 
@@ -2188,7 +2139,6 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 **Examples:**
 
 ```
-feat(search): add wildcard search support
 fix(auth): resolve token expiration issue
 docs(api): update query endpoint documentation
 perf(ingest): optimize bulk ingestion performance
@@ -2245,7 +2195,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
    - Review the [Troubleshooting](#troubleshooting) section
 
 2. **Search Existing Issues**
-   - [GitHub Issues](https://github.com/yourusername/log-ingestor-system/issues)
+   - [GitHub Issues](https://github.com/nitishkumar0777/log-ingestor-system/issues)
    - Someone may have already solved your problem
 
 3. **Create a New Issue**
@@ -2331,7 +2281,6 @@ Any other relevant information.
 - ✅ Full-text search across all fields
 - ✅ Advanced filtering (level, resource, trace, date range)
 - ✅ Regular expression search
-- ✅ Wildcard search
 - ✅ Real-time log streaming via WebSocket
 - ✅ Role-based access control (Admin/Viewer)
 - ✅ JWT authentication
@@ -2433,4 +2382,4 @@ Monitor infrastructure and application health.
 
 **Last Updated:** February 2024  
 **Version:** 1.0.0  
-**Maintainers:** Your Team Name
+**Maintainers:** Nitish Kumar

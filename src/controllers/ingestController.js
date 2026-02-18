@@ -1,5 +1,7 @@
 const logService = require('../services/logService');
 const queueService = require('../services/queueService');
+const { validateAndSeparateLogs } = require('../middleware/logValidator');
+
 
 class IngestController {
   // Fast async ingestion with queue
@@ -61,35 +63,65 @@ class IngestController {
         });
       }
 
-      // For very large batches, use queue
-      if (logs.length > 10000) {
-        logs.forEach(log => queueService.addToQueue(log));
-        return res.status(202).json({
+      const { valid, invalid } = validateAndSeparateLogs(logs);
+
+      if (valid.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'All logs are invalid',
+          invalidLogs: invalid.slice(0, 10),
+          totalInvalid: invalid.length
+        });
+      }
+
+      // Process valid logs
+      if (valid.length > 10000) {
+        valid.forEach(log => queueService.addToQueue(log));
+
+        return res.status(207).json({
           success: true,
-          message: `${logs.length} logs queued for ingestion`,
-          queueStatus: queueService.getStatus()
+          message: `${valid.length} valid logs queued for ingestion`,
+          accepted: valid.length,
+          rejected: invalid.length,
+          invalidLogs: invalid.length > 0 ? invalid.slice(0, 5) : undefined
         });
       }
 
       // For smaller batches, process immediately
-      const result = await logService.bulkIngest(logs);
+      const result = await logService.bulkIngest(valid);
 
+      // Return result with validation info
       if (result.success) {
-        res.status(201).json({
+        const response = {
           success: true,
-          message: `${result.count} logs ingested successfully`
-        });
+          message: `${result.count} logs ingested successfully`,
+          accepted: valid.length,
+          rejected: invalid.length
+        };
+
+        // Include invalid logs if any
+        if (invalid.length > 0) {
+          response.invalidLogs = invalid.slice(0, 5);
+          response.totalInvalid = invalid.length;
+        }
+
+        res.status(invalid.length > 0 ? 207 : 201).json(response);
       } else {
         res.status(207).json({
           success: false,
           message: 'Some logs failed to ingest',
-          errors: result.errors
+          errors: result.errors,
+          validationErrors: invalid.length > 0 ? {
+            count: invalid.length,
+            samples: invalid.slice(0, 5)
+          } : undefined
         });
       }
     } catch (error) {
       next(error);
     }
   }
+
 
   // Get ingestion stats
   async getStats(req, res, next) {

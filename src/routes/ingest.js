@@ -3,6 +3,7 @@ const router = express.Router();
 const ingestController = require('../controllers/ingestController');
 const { authenticate, authorize } = require('../middleware/auth');
 const { ingestLimiter } = require('../middleware/rateLimiter');
+const {validateSingleLog, validateBulkLogs} = require('../middleware/logValidator');
 
 
 // High-throughput async ingestion (recommended for production)
@@ -10,6 +11,7 @@ router.post('/async',
     ingestLimiter,
     authenticate,
     authorize('admin'),
+    validateSingleLog,
     ingestController.ingestSingleAsync.bind(ingestController)
 );
 
@@ -17,6 +19,7 @@ router.post('/async',
 router.post('/',
     authenticate,
     authorize('admin'),
+    validateSingleLog,
     ingestController.ingestSingle.bind(ingestController)
 );
 
@@ -24,6 +27,7 @@ router.post('/',
 router.post('/bulk',
     authenticate,
     authorize('admin'),
+    validateBulkLogs,
     ingestController.ingestBulk.bind(ingestController)
 );
 

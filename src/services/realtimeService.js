@@ -12,11 +12,13 @@ class RealtimeService {
             filters,
             lastTimestamp: new Date().toISOString()
         });
-        console.log(`📡 Client ${socketId} subscribed to real-time logs`);
+        console.log(`📡 Client ${socketId} subscribed to real-time logs having filters `);
+        console.dir(filters, { depth: null, color: true });
     }
 
     // Unsubscribe
     unsubscribe(socketId) {
+        console.log("Current subscriber", this.subscribers)
         this.subscribers.delete(socketId);
         console.log(`📡 Client ${socketId} unsubscribed from real-time logs`);
     }
@@ -24,6 +26,7 @@ class RealtimeService {
     // Poll for new logs
     async pollNewLogs(socketId) {
         const subscriber = this.subscribers.get(socketId);
+        console.log("Subscriber info:", subscriber);
         if (!subscriber) return [];
 
         try {
@@ -60,6 +63,8 @@ class RealtimeService {
                     size: 100
                 }
             });
+
+            console.log("Log response", response);
 
             const logs = response.hits.hits.map(hit => ({
                 id: hit._id,
