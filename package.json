@@ -8,7 +8,9 @@
     "dev": "nodemon src/app.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "test": "jest",
+    "lint": "eslint src/**/*.js"
   },
   "keywords": [
     "logs",
@@ -32,6 +34,13 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.11"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

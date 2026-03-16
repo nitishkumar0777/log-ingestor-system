@@ -105,7 +105,7 @@ async function initializeIndex() {
                 });
                 console.log(`✅ Updated settings for better performance`);
             } catch (error) {
-                console.log('⚠️  Could not update some settings (index may need to be closed first)');
+                console.log('⚠️  Could not update some settings (index may need to be closed first)', error.message);
             }
         }
     } catch (error) {

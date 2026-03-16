@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    name: Lint, test & build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your code at the exact commit SHA
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js (matches your package.json requirement >=16)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install dependencies (uses package-lock.json for exact versions)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Lint — checks code style
+      # If you don't have eslint yet, see Step 3 below
+      - name: Run lint
+        run: npm run lint
+
+      # 5. Run tests
+      - name: Run tests
+        run: npm test
+
+      # 6. Build Docker image — verifies your Dockerfile is valid
+      - name: Build Docker image
+        run: docker build -t log-ingestor-system:${{ github.sha }} .
