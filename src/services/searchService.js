@@ -92,7 +92,7 @@ class SearchService {
                 size: safeSize
             };
         } catch (error) {
-            throw new Error(`Search failed: ${error.message}`);
+            throw new Error(`Search failed: ${error.message}`, { cause: error });
         }
     }
 
@@ -151,7 +151,7 @@ class SearchService {
                 size: safeSize
             };
         } catch (error) {
-            throw new Error(`Full-text search failed: ${error.message}`);
+            throw new Error(`Full-text search failed: ${error.message}`, { cause: error });
         }
     }
 
@@ -199,7 +199,7 @@ class SearchService {
                 size: safeSize
             };
         } catch (error) {
-            throw new Error(`Regex search failed: ${error.message}`);
+            throw new Error(`Regex search failed: ${error.message}`, { cause: error });
         }
     }
 

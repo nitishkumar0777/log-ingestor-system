@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { users, JWT_SECRET, authenticate } = require('../middleware/auth');
 
 // Login endpoint

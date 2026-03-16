@@ -5,6 +5,8 @@ function errorHandler(err, req, res, next) {
     error: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
+  
+  next();
 }
 
 module.exports = errorHandler;

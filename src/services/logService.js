@@ -15,7 +15,7 @@ class LogService {
       });
       return response;
     } catch (error) {
-      throw new Error(`Failed to ingest log: ${error.message}`);
+      throw new Error(`Failed to ingest log: ${error.message}`, { cause: error });
     }
   }
 
@@ -49,7 +49,7 @@ class LogService {
 
       return { success: true, count: logs.length };
     } catch (error) {
-      throw new Error(`Bulk ingest failed: ${error.message}`);
+      throw new Error(`Bulk ingest failed: ${error.message}`, { cause: error });
     }
   }
 }
